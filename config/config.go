@@ -7,14 +7,14 @@ import (
 
 type Config struct {
 	RunAddress           string `env:"RUN_ADDRESS" envDefault:"localhost:8090"`
-	DatabaseURI          string `env:"DATABASE_URI" envDefault:"postgres://chris:chris@postgres:5432/gophermart?sslmode=disable"`
+	DatabaseURI          string `env:"DATABASE_URI"`
 	AccrualSystemAddress string `env:"ACCRUAL_SYSTEM_ADDRESS" envDefault:"http://localhost:8080"`
 }
 
 func NewConfig() (*Config, error) {
 	conf := &Config{}
 
-	if err := env.Parse(conf); err != nil {
+	/if err := env.Parse(conf); err != nil {
 		return nil, err
 	}
 
