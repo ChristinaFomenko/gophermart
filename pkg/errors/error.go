@@ -2,6 +2,10 @@ package errors
 
 import "fmt"
 
+const (
+	InternalServerError = "internal server error"
+)
+
 type ConflictLoginError struct {
 	Login string
 }
