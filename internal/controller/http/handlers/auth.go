@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"errors"
 	"net/http"
 
@@ -16,8 +15,7 @@ func (h *Handler) registration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
-	err = h.Service.Auth.CreateUser(ctx, &user)
+	err = h.Service.Auth.CreateUser(r.Context(), &user)
 
 	if errors.As(err, &errs.ConflictLoginError{}) {
 		http.Error(w, err.Error(), http.StatusConflict)
@@ -38,8 +36,7 @@ func (h *Handler) authentication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
-	err = h.Service.Auth.AuthenticationUser(ctx, &user)
+	err = h.Service.Auth.AuthenticationUser(r.Context(), &user)
 
 	if errors.As(err, &errs.AuthenticationError{}) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)

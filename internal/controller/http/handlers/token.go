@@ -19,7 +19,7 @@ func (h *Handler) writeToken(w http.ResponseWriter, user *model.User, nameFunc s
 		http.Error(w, errs.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Authorization", "BEARER "+token)
+	w.Header().Set("Authorization", "Bearer "+token)
 }
 
 func (h *Handler) readUserData(w http.ResponseWriter, r *http.Request, user *model.User, nameFunc string) error {

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	errs "github.com/ChristinaFomenko/gophermart/pkg/errors"
 	"io"
@@ -24,8 +23,7 @@ func (h *Handler) getCurrentBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
-	accruals, withdraws := h.Service.Withdraw.GetBalance(ctx, userID)
+	accruals, withdraws := h.Service.Withdraw.GetBalance(r.Context(), userID)
 
 	b := balance{Current: accruals - withdraws, Withdrawn: withdraws}
 
@@ -64,8 +62,7 @@ func (h *Handler) deductionOfPoints(w http.ResponseWriter, r *http.Request) {
 
 	order.UserID = userID
 
-	ctx := context.Background()
-	err = h.Service.Withdraw.DeductionOfPoints(ctx, order)
+	err = h.Service.Withdraw.DeductionOfPoints(r.Context(), order)
 
 	switch err.(type) {
 	case nil:
@@ -86,8 +83,7 @@ func (h *Handler) getWithdrawalOfPoints(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	ctx := context.Background()
-	orders, err := h.Service.Withdraw.GetWithdrawalOfPoints(ctx, userID)
+	orders, err := h.Service.Withdraw.GetWithdrawalOfPoints(r.Context(), userID)
 	if err != nil {
 		http.Error(w, errs.InternalServerError, http.StatusInternalServerError)
 		return

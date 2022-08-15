@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	errs "github.com/ChristinaFomenko/gophermart/pkg/errors"
 	"io"
@@ -36,8 +35,7 @@ func (h *Handler) loadOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
-	err = h.Service.Accrual.LoadOrder(ctx, numOrder, userID)
+	err = h.Service.Accrual.LoadOrder(r.Context(), numOrder, userID)
 
 	switch err.(type) {
 	case nil:
@@ -64,8 +62,7 @@ func (h *Handler) getUploadedOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
-	orders, err := h.Service.Accrual.GetUploadedOrders(ctx, userID)
+	orders, err := h.Service.Accrual.GetUploadedOrders(r.Context(), userID)
 	if err != nil {
 		http.Error(w, errs.InternalServerError, http.StatusInternalServerError)
 		return
