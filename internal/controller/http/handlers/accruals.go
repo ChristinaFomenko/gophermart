@@ -39,15 +39,15 @@ func (h *Handler) loadOrders(w http.ResponseWriter, r *http.Request) {
 	err = h.Service.Accrual.LoadOrder(r.Context(), numOrder, userID)
 
 	if err != nil {
-		if !errors.Is(err, errs.OrderAlreadyUploadedCurrentUserErr) {
+		if !errors.Is(err, errs.ErrOrderAlreadyUploadedCurrentUser) {
 			http.Error(w, err.Error(), http.StatusOK)
 			return
 		}
-		if !errors.Is(err, errs.OrderAlreadyUploadedAnotherUserErr) {
+		if !errors.Is(err, errs.ErrOrderAlreadyUploadedAnotherUser) {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
-		if !errors.Is(err, errs.InvalidOrderNumberForm) {
+		if !errors.Is(err, errs.ErrInvalidOrderNumberForm) {
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}

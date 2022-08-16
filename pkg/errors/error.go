@@ -24,9 +24,9 @@ func (auth AuthenticationError) Error() string {
 }
 
 var (
-	OrderAlreadyUploadedCurrentUserErr = errors.New("the order has already been uploaded by the current user")
-	OrderAlreadyUploadedAnotherUserErr = errors.New("the order has already been uploaded by another user")
-	InvalidOrderNumberForm             = errors.New("invalid order number format")
+	ErrOrderAlreadyUploadedCurrentUser = errors.New("the order has already been uploaded by the current user")
+	ErrOrderAlreadyUploadedAnotherUser = errors.New("the order has already been uploaded by another user")
+	ErrInvalidOrderNumberForm          = errors.New("invalid order number format")
 )
 
 type OrderAlreadyUploadedCurrentUserError struct{}
