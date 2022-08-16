@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	errs "github.com/ChristinaFomenko/gophermart/pkg/errors"
 	"io"
 	"net/http"
@@ -37,21 +38,39 @@ func (h *Handler) loadOrders(w http.ResponseWriter, r *http.Request) {
 
 	err = h.Service.Accrual.LoadOrder(r.Context(), numOrder, userID)
 
-	switch err.(type) {
-	case nil:
-		w.WriteHeader(http.StatusAccepted)
-	case errs.OrderAlreadyUploadedCurrentUserError:
-		http.Error(w, err.Error(), http.StatusOK)
+	if err != nil {
+		if !errors.Is(err, errs.OrderAlreadyUploadedCurrentUserErr) {
+			http.Error(w, err.Error(), http.StatusOK)
+			return
+		}
+		if !errors.Is(err, errs.OrderAlreadyUploadedAnotherUserErr) {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
+		if !errors.Is(err, errs.InvalidOrderNumberForm) {
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			return
+		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	case errs.OrderAlreadyUploadedAnotherUserError:
-		http.Error(w, err.Error(), http.StatusConflict)
-		return
-	case errs.CheckError:
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-		return
-	default:
-		http.Error(w, errs.InternalServerError, http.StatusInternalServerError)
 	}
+	//switch err.(type) {
+	//case nil:
+	//	w.WriteHeader(http.StatusAccepted)
+	//case errs.OrderAlreadyUploadedCurrentUserError:
+	//	http.Error(w, err.Error(), http.StatusOK)
+	//	return
+	//case errs.OrderAlreadyUploadedAnotherUserError:
+	//	http.Error(w, err.Error(), http.StatusConflict)
+	//	return
+	//case errs.CheckError:
+	//	http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+	//	return
+	//default:
+	//	http.Error(w, errs.InternalServerError, http.StatusInternalServerError)
+	//}
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *Handler) getUploadedOrders(w http.ResponseWriter, r *http.Request) {

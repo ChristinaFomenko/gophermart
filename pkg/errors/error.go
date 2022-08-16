@@ -1,6 +1,9 @@
 package errors
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 const (
 	InternalServerError = "internal server error"
@@ -19,6 +22,12 @@ type AuthenticationError struct{}
 func (auth AuthenticationError) Error() string {
 	return "invalid login/password"
 }
+
+var (
+	OrderAlreadyUploadedCurrentUserErr = errors.New("the order has already been uploaded by the current user")
+	OrderAlreadyUploadedAnotherUserErr = errors.New("the order has already been uploaded by another user")
+	InvalidOrderNumberForm             = errors.New("invalid order number format")
+)
 
 type OrderAlreadyUploadedCurrentUserError struct{}
 
