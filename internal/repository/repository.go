@@ -9,6 +9,12 @@ import (
 	"github.com/ChristinaFomenko/gophermart/internal/repository/psql"
 )
 
+type Transaction interface {
+	BeginTx(context.Context) (*sql.Tx, error)
+	AccrualOrderRepoContract
+	WithdrawOrderRepoContract
+}
+
 type AuthRepoContract interface {
 	CreateUser(ctx context.Context, user *model.User) (int, error)
 	GetUserID(ctx context.Context, user *model.User) (int, error)
@@ -21,16 +27,17 @@ type AccrualOrderRepoContract interface {
 }
 
 type WithdrawOrderRepoContract interface {
-	GetAccruals(ctx context.Context, UserID int) float32
-	GetWithdrawals(ctx context.Context, UserID int) float32
-	DeductPoints(ctx context.Context, order *model.WithdrawOrder) error
+	GetAccruals(tx *sql.Tx, ctx context.Context, UserID int) float32
+	GetWithdrawals(tx *sql.Tx, ctx context.Context, UserID int) float32
+	DeductPoints(tx *sql.Tx, ctx context.Context, order *model.WithdrawOrder) error
 	GetWithdrawalOfPoints(ctx context.Context, userID int) ([]model.WithdrawOrder, error)
 }
 
 type Repository struct {
-	Auth     AuthRepoContract
-	Accrual  AccrualOrderRepoContract
-	Withdraw WithdrawOrderRepoContract
+	Auth        AuthRepoContract
+	Accrual     AccrualOrderRepoContract
+	Withdraw    WithdrawOrderRepoContract
+	Transaction Transaction
 }
 
 func NewRepository(db *sql.DB, log *zap.Logger) *Repository {

@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -30,6 +31,10 @@ func (p *Psql) Ping() error {
 		return err
 	}
 	return nil
+}
+
+func (p *Psql) BeginTx(ctx context.Context) (*sql.Tx, error) {
+	return p.DB.BeginTx(ctx, nil)
 }
 
 func (p *Psql) Init() error {

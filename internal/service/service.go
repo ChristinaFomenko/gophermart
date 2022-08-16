@@ -2,12 +2,19 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"github.com/go-chi/jwtauth/v5"
 	"go.uber.org/zap"
 
 	"github.com/ChristinaFomenko/gophermart/internal/model"
 	"github.com/ChristinaFomenko/gophermart/internal/repository"
 )
+
+type Transaction interface {
+	BeginTx(context.Context) (*sql.Tx, error)
+	AccrualOrderServiceContract
+	WithdrawOrderServiceContract
+}
 
 type AuthServiceContract interface {
 	CreateUser(ctx context.Context, user *model.User) error
@@ -22,15 +29,16 @@ type AccrualOrderServiceContract interface {
 }
 
 type WithdrawOrderServiceContract interface {
-	DeductionOfPoints(ctx context.Context, order *model.WithdrawOrder) error
-	GetBalance(ctx context.Context, userID int) (float32, float32)
+	DeductionOfPoints(tx *sql.Tx, ctx context.Context, order *model.WithdrawOrder) error
+	GetBalance(tx *sql.Tx, ctx context.Context, userID int) (float32, float32)
 	GetWithdrawalOfPoints(ctx context.Context, userID int) ([]model.WithdrawOrder, error)
 }
 
 type Service struct {
-	Auth     AuthServiceContract
-	Accrual  AccrualOrderServiceContract
-	Withdraw WithdrawOrderServiceContract
+	Auth        AuthServiceContract
+	Accrual     AccrualOrderServiceContract
+	Withdraw    WithdrawOrderServiceContract
+	Transaction Transaction
 }
 
 func NewService(repo *storage.Repository, log *zap.Logger) *Service {
