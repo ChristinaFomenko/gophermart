@@ -29,8 +29,8 @@ type AccrualOrderServiceContract interface {
 }
 
 type WithdrawOrderServiceContract interface {
-	DeductionOfPoints(tx *sql.Tx, ctx context.Context, order *model.WithdrawOrder) error
-	GetBalance(tx *sql.Tx, ctx context.Context, userID int) (float32, float32)
+	DeductionOfPoints(ctx context.Context, order *model.WithdrawOrder) error
+	GetBalance(ctx context.Context, userID int) (float32, float32)
 	GetWithdrawalOfPoints(ctx context.Context, userID int) ([]model.WithdrawOrder, error)
 }
 

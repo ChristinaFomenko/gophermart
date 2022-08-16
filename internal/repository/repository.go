@@ -27,9 +27,9 @@ type AccrualOrderRepoContract interface {
 }
 
 type WithdrawOrderRepoContract interface {
-	GetAccruals(tx *sql.Tx, ctx context.Context, UserID int) float32
-	GetWithdrawals(tx *sql.Tx, ctx context.Context, UserID int) float32
-	DeductPoints(tx *sql.Tx, ctx context.Context, order *model.WithdrawOrder) error
+	GetAccruals(ctx context.Context, UserID int) float32
+	GetWithdrawals(ctx context.Context, UserID int) float32
+	DeductPoints(ctx context.Context, order *model.WithdrawOrder) error
 	GetWithdrawalOfPoints(ctx context.Context, userID int) ([]model.WithdrawOrder, error)
 }
 

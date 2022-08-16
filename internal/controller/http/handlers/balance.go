@@ -23,17 +23,9 @@ func (h *Handler) getCurrentBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := h.Service.Transaction.BeginTx(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	defer tx.Rollback()
-
-	accruals, withdraws := h.Service.Withdraw.GetBalance(tx, r.Context(), userID)
+	accruals, withdraws := h.Service.Withdraw.GetBalance(r.Context(), userID)
 
 	b := balance{Current: accruals - withdraws, Withdrawn: withdraws}
-
-	tx.Commit()
 
 	output, err := json.Marshal(b)
 	if err != nil {
@@ -70,13 +62,7 @@ func (h *Handler) deductionOfPoints(w http.ResponseWriter, r *http.Request) {
 
 	order.UserID = userID
 
-	tx, err := h.Service.Transaction.BeginTx(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	defer tx.Rollback()
-
-	err = h.Service.Withdraw.DeductionOfPoints(tx, r.Context(), order)
+	err = h.Service.Withdraw.DeductionOfPoints(r.Context(), order)
 
 	switch err.(type) {
 	case nil:
@@ -86,11 +72,6 @@ func (h *Handler) deductionOfPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		http.Error(w, errs.InternalServerError, http.StatusInternalServerError)
-	}
-
-	if err = tx.Commit(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 }
 

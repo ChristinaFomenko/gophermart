@@ -22,24 +22,29 @@ func NewWithdrawOrderPostgres(db *sql.DB, log *zap.Logger) *WithdrawOrderPostgre
 	}
 }
 
-func (w *WithdrawOrderPostgres) GetAccruals(tx *sql.Tx, ctx context.Context, UserID int) float32 {
-	row := tx.QueryRowContext(ctx, "SELECT SUM(amount) FROM public.accruals WHERE user_id=$1", UserID)
+func (w *WithdrawOrderPostgres) GetAccruals(ctx context.Context, UserID int) float32 {
+	row := w.db.QueryRowContext(ctx, "SELECT SUM(amount) FROM public.accruals WHERE user_id=$1", UserID)
 	var accruals float32
 	_ = row.Scan(&accruals)
 
 	return accruals
 }
 
-func (w *WithdrawOrderPostgres) GetWithdrawals(tx *sql.Tx, ctx context.Context, UserID int) float32 {
-	row := tx.QueryRowContext(ctx, "SELECT SUM(amount) FROM public.withdrawals WHERE user_id=$1", UserID)
+func (w *WithdrawOrderPostgres) GetWithdrawals(ctx context.Context, UserID int) float32 {
+	row := w.db.QueryRowContext(ctx, "SELECT SUM(amount) FROM public.withdrawals WHERE user_id=$1", UserID)
 	var withdrawals float32
 	_ = row.Scan(&withdrawals)
 
 	return withdrawals
 }
 
-func (w *WithdrawOrderPostgres) DeductPoints(tx *sql.Tx, ctx context.Context, order *model.WithdrawOrder) (err error) {
+func (w *WithdrawOrderPostgres) DeductPoints(ctx context.Context, order *model.WithdrawOrder) (err error) {
 	order.ProcessedAt = time.Now()
+
+	tx, err := w.db.Begin()
+	if err != nil {
+		return err
+	}
 
 	defer func() {
 		if err != nil {

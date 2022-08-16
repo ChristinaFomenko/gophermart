@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	errs "github.com/ChristinaFomenko/gophermart/pkg/errors"
 	"go.uber.org/zap"
 
@@ -10,9 +9,9 @@ import (
 )
 
 type WithdrawOrderRepoContract interface {
-	GetAccruals(tx *sql.Tx, ctx context.Context, UserID int) float32
-	GetWithdrawals(tx *sql.Tx, ctx context.Context, UserID int) float32
-	DeductPoints(tx *sql.Tx, ctx context.Context, order *model.WithdrawOrder) error
+	GetAccruals(ctx context.Context, UserID int) float32
+	GetWithdrawals(ctx context.Context, UserID int) float32
+	DeductPoints(ctx context.Context, order *model.WithdrawOrder) error
 	GetWithdrawalOfPoints(ctx context.Context, userID int) ([]model.WithdrawOrder, error)
 }
 type WithdrawOrderService struct {
@@ -27,20 +26,20 @@ func NewWithdrawOrderService(repo WithdrawOrderRepoContract, log *zap.Logger) *W
 	}
 }
 
-func (w WithdrawOrderService) GetBalance(tx *sql.Tx, ctx context.Context, userID int) (float32, float32) {
-	accruals := w.repo.GetAccruals(tx, ctx, userID)
-	withdrawn := w.repo.GetWithdrawals(tx, ctx, userID)
+func (w WithdrawOrderService) GetBalance(ctx context.Context, userID int) (float32, float32) {
+	accruals := w.repo.GetAccruals(ctx, userID)
+	withdrawn := w.repo.GetWithdrawals(ctx, userID)
 	return accruals, withdrawn
 }
 
-func (w WithdrawOrderService) DeductionOfPoints(tx *sql.Tx, ctx context.Context, order *model.WithdrawOrder) error {
-	accruals, withdrawn := w.GetBalance(tx, ctx, order.UserID)
+func (w WithdrawOrderService) DeductionOfPoints(ctx context.Context, order *model.WithdrawOrder) error {
+	accruals, withdrawn := w.GetBalance(ctx, order.UserID)
 
 	if order.Sum >= accruals-withdrawn {
 		return errs.NotEnoughPoints{}
 	}
 
-	err := w.repo.DeductPoints(tx, ctx, order)
+	err := w.repo.DeductPoints(ctx, order)
 	if err != nil {
 		w.log.Error("WithdrawOrderService.DeductionOfPoints: DeductPoints db error")
 		return err
