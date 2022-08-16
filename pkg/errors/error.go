@@ -1,7 +1,6 @@
 package errors
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -23,11 +22,11 @@ func (auth AuthenticationError) Error() string {
 	return "invalid login/password"
 }
 
-var (
-	ErrOrderAlreadyUploadedCurrentUser = errors.New("the order has already been uploaded by the current user")
-	ErrOrderAlreadyUploadedAnotherUser = errors.New("the order has already been uploaded by another user")
-	ErrInvalidOrderNumberForm          = errors.New("invalid order number format")
-)
+//var (
+//	ErrOrderAlreadyUploadedCurrentUser = errors.New("the order has already been uploaded by the current user")
+//	ErrOrderAlreadyUploadedAnotherUser = errors.New("the order has already been uploaded by another user")
+//	ErrInvalidOrderNumberForm          = errors.New("invalid order number format")
+//)
 
 type OrderAlreadyUploadedCurrentUserError struct{}
 
