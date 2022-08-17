@@ -9,11 +9,6 @@ import (
 	"github.com/ChristinaFomenko/gophermart/internal/model"
 )
 
-type balance struct {
-	Current   float32 `json:"current"`
-	Withdrawn float32 `json:"withdrawn"`
-}
-
 //getCurrentBalance GET /api/user/balance - получение текущего баланса пользователя
 func (h *Handler) getCurrentBalance(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -25,9 +20,9 @@ func (h *Handler) getCurrentBalance(w http.ResponseWriter, r *http.Request) {
 
 	accruals, withdraws := h.Service.Withdraw.GetBalance(r.Context(), userID)
 
-	b := balance{Current: accruals - withdraws, Withdrawn: withdraws}
+	balance := model.User{Current: accruals - withdraws, Withdrawn: withdraws}
 
-	output, err := json.Marshal(b)
+	output, err := json.Marshal(balance)
 	if err != nil {
 		h.log.Error("Handler.getCurrentBalance: json write error")
 		http.Error(w, errs.InternalServerError, http.StatusInternalServerError)
