@@ -41,8 +41,6 @@ func (w *WithdrawOrderPostgres) GetWithdrawals(ctx context.Context, UserID int) 
 func (w *WithdrawOrderPostgres) DeductPoints(ctx context.Context, order *model.WithdrawOrder) (err error) {
 	order.ProcessedAt = time.Now()
 
-	var user model.User
-
 	tx, err := w.db.Begin()
 	if err != nil {
 		return err
@@ -66,8 +64,6 @@ func (w *WithdrawOrderPostgres) DeductPoints(ctx context.Context, order *model.W
 	_, err = tx.ExecContext(ctx,
 		"INSERT INTO public.withdrawals(order_num, user_id, amount, processed_at) VALUES ($1,$2,$3,$4)",
 		order.Order, order.UserID, order.Sum, order.ProcessedAt)
-
-	_, err = tx.ExecContext(ctx, "UPDATE public.users SET current = current - $1, withdrawn = withdrawn + $1 WHERE user_id = $2;", order.Sum, user.ID)
 
 	if err != nil {
 		return err

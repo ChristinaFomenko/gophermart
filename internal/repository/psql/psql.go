@@ -41,9 +41,7 @@ func (p *Psql) Init() error {
 	_, err := p.DB.Exec(`CREATE TABLE IF NOT EXISTS public.users(
 		    id SERIAL PRIMARY KEY,
     		login TEXT NOT NULL UNIQUE,
-    		password TEXT NOT NULL
-            current NUMERIC(10, 2) DEFAULT 0,
-			withdrawn NUMERIC(10, 2) DEFAULT 0);
+    		password TEXT NOT NULL);
 
 			CREATE TABLE IF NOT EXISTS public.orders(
 				id BIGSERIAL PRIMARY KEY,
