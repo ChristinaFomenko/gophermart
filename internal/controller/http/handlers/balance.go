@@ -47,6 +47,7 @@ func (h *Handler) deductionOfPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var user *model.User
 	var order *model.WithdrawOrder
 	err = json.Unmarshal(body, &order)
 	if err != nil {
@@ -56,6 +57,13 @@ func (h *Handler) deductionOfPoints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	order.UserID = userID
+
+	accruals, withdraws := h.Service.Withdraw.GetBalance(r.Context(), userID)
+
+	if user.Current >= accruals-withdraws {
+		http.Error(w, "Not enough funds", http.StatusPaymentRequired)
+		return
+	}
 
 	err = h.Service.Withdraw.DeductionOfPoints(r.Context(), order)
 
