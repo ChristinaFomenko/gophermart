@@ -25,6 +25,18 @@ func NewAccrualOrderPostgres(db *sql.DB, log *zap.Logger) *AccrualOrderPostgres 
 func (a *AccrualOrderPostgres) SaveOrder(ctx context.Context, order *model.AccrualOrder) (err error) {
 	order.UploadedAt = time.Now()
 
+	var userID int
+	var current float32
+
+	checkCurrent, err := a.db.PrepareContext(ctx, "SELECT id, current FROM users WHERE id = $1;")
+	if err != nil {
+		return err
+	}
+
+	if err = checkCurrent.QueryRowContext(ctx, order.UserID).Scan(&userID, &current); err != nil {
+		return err
+	}
+
 	tx, err := a.db.Begin()
 	if err != nil {
 		return err
@@ -40,16 +52,31 @@ func (a *AccrualOrderPostgres) SaveOrder(ctx context.Context, order *model.Accru
 	}()
 
 	_, err = tx.ExecContext(ctx,
-		"INSERT INTO public.orders(order_num,user_id) VALUES ($1,$2)", order.Number, order.UserID)
+		"INSERT INTO orders(order_num,user_id) VALUES ($1,$2)", order.Number, order.UserID)
 	if err != nil {
 		return err
 	}
 
 	_, err = tx.ExecContext(ctx,
-		"INSERT INTO public.accruals(order_num,user_id,status,uploaded_at) VALUES ($1,$2,$3,$4)",
+		"INSERT INTO accruals(order_num,user_id,status,uploaded_at) VALUES ($1,$2,$3,$4)",
 		order.Number, order.UserID, order.Status.String(), order.UploadedAt)
 	if err != nil {
 		return err
+	}
+
+	if order.Status == model.StatusPROCESSED {
+		current = current + order.Accrual
+		updateAccrual, err := a.db.PrepareContext(ctx, "UPDATE users SET current = $1 WHERE id = $2;")
+		if err != nil {
+			return err
+		}
+
+		txUpdateAccrual := tx.StmtContext(ctx, updateAccrual)
+
+		_, err = txUpdateAccrual.ExecContext(ctx, current, userID)
+		if err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }
