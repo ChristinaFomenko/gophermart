@@ -68,6 +68,12 @@ func (w *WithdrawOrderPostgres) DeductPoints(ctx context.Context, order *model.W
 	if err != nil {
 		return err
 	}
+
+	_, err = tx.ExecContext(ctx, "UPDATE users SET current = current - $1, withdrawal = withdrawal + $1 WHERE id = $2", order.Sum, order.UserID)
+	if err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }
 

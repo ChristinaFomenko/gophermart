@@ -3,7 +3,7 @@ package model
 import "time"
 
 type AccrualOrder struct {
-	UserID     int       `json:"-"`
+	UserID     int       `json:"user_id"`
 	Number     uint64    `json:"number,string"`
 	Status     Status    `json:"status"`
 	Accrual    float32   `json:"accrual,omitempty"`
