@@ -20,7 +20,7 @@ func (h *Handler) getCurrentBalance(w http.ResponseWriter, r *http.Request) {
 
 	accruals, withdraws := h.Service.Withdraw.GetBalance(r.Context(), userID)
 
-	balance := model.User{Current: accruals - withdraws, Withdrawn: withdraws}
+	balance := model.Balance{Current: accruals - withdraws, Withdrawn: withdraws}
 
 	output, err := json.Marshal(balance)
 	if err != nil {
