@@ -58,37 +58,17 @@ func (b *BrokerPostgres) UpdateOrderAccruals(ctx context.Context, orderAccruals 
 
 	defer tx.Rollback()
 
-	updateAccrualStmt, err := tx.PrepareContext(ctx,
-		"UPDATE accruals SET status=$1, amount=$2 WHERE order_num=$3")
+	stmt, err := tx.PrepareContext(ctx,
+		"UPDATE public.accruals SET status=$1, amount=$2 WHERE order_num=$3")
 	if err != nil {
 		return err
 	}
-	defer updateAccrualStmt.Close()
-
-	updateUserStmt, err := b.db.PrepareContext(ctx, "UPDATE users SET current = $1 WHERE id =$2;")
-	if err != nil {
-		return err
-	}
-
-	txUpdateUserStmt := tx.StmtContext(ctx, updateUserStmt)
+	defer stmt.Close()
 
 	for _, order := range orderAccruals {
-		_, err = updateAccrualStmt.ExecContext(ctx, order.Status, order.Accrual, order.Order)
+		_, err = stmt.ExecContext(ctx, order.Status, order.Accrual, order.Order)
 		if err != nil {
 			return err
-		}
-
-		if order.Status == model.StatusPROCESSED {
-			var current float32
-			if err = tx.QueryRowContext(ctx, "SELECT current FROM users WHERE id = $1;", order.UserID).Scan(&current); err != nil {
-				return err
-			}
-			current = current + order.Accrual
-
-			_, err = txUpdateUserStmt.ExecContext(ctx, current, order.UserID)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
