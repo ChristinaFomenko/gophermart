@@ -107,7 +107,7 @@ func (w *WithdrawOrderPostgres) GetWithdrawalOfPoints(ctx context.Context, userI
 func (w *WithdrawOrderPostgres) WithTx(ctx context.Context, fn func(ctx context.Context) error) (err error) {
 	tx, alreadyHasTx := ctx.Value(ctxTxKey{}).(*sql.Tx)
 	if !alreadyHasTx {
-		tx, err = w.db.Begin()
+		tx, err = w.db.BeginTx(ctx, &sql.TxOptions{})
 		if err != nil {
 
 			return errors.WithStack(err)

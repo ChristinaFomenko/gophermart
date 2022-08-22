@@ -35,7 +35,7 @@ func (w WithdrawOrderService) GetBalance(ctx context.Context, userID int) (float
 }
 
 func (w WithdrawOrderService) DeductionOfPoints(ctx context.Context, order *model.WithdrawOrder) error {
-	return w.txConnection.WithTx(ctx, func(txCtx context.Context) error {
+	return w.txConnection.WithTx(ctx, func(txCtx WithdrawOrderServiceContract) error {
 		accruals, withdrawn := w.GetBalance(ctx, order.UserID)
 
 		if order.Sum >= accruals-withdrawn {
