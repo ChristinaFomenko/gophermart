@@ -15,14 +15,16 @@ type WithdrawOrderRepoContract interface {
 	GetWithdrawalOfPoints(ctx context.Context, userID int) ([]model.WithdrawOrder, error)
 }
 type WithdrawOrderService struct {
-	repo WithdrawOrderRepoContract
-	log  *zap.Logger
+	txConnection TxConnection
+	repo         WithdrawOrderRepoContract
+	log          *zap.Logger
 }
 
-func NewWithdrawOrderService(repo WithdrawOrderRepoContract, log *zap.Logger) *WithdrawOrderService {
+func NewWithdrawOrderService(txConnection TxConnection, repo WithdrawOrderRepoContract, log *zap.Logger) *WithdrawOrderService {
 	return &WithdrawOrderService{
-		repo: repo,
-		log:  log,
+		txConnection: txConnection,
+		repo:         repo,
+		log:          log,
 	}
 }
 
@@ -33,19 +35,21 @@ func (w WithdrawOrderService) GetBalance(ctx context.Context, userID int) (float
 }
 
 func (w WithdrawOrderService) DeductionOfPoints(ctx context.Context, order *model.WithdrawOrder) error {
-	accruals, withdrawn := w.GetBalance(ctx, order.UserID)
+	return w.txConnection.WithTx(ctx, func(txCtx context.Context) error {
+		accruals, withdrawn := w.GetBalance(ctx, order.UserID)
 
-	if order.Sum >= accruals-withdrawn {
-		return errs.NotEnoughPoints{}
-	}
+		if order.Sum >= accruals-withdrawn {
+			return errs.NotEnoughPoints{}
+		}
 
-	err := w.repo.DeductPoints(ctx, order)
-	if err != nil {
-		w.log.Error("WithdrawOrderService.DeductionOfPoints: DeductPoints db error")
-		return err
-	}
+		err := w.repo.DeductPoints(ctx, order)
+		if err != nil {
+			w.log.Error("WithdrawOrderService.DeductionOfPoints: DeductPoints db error")
+			return err
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func (w *WithdrawOrderService) GetWithdrawalOfPoints(ctx context.Context, userID int) ([]model.WithdrawOrder, error) {

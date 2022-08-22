@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"github.com/pkg/errors"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
@@ -10,6 +11,8 @@ import (
 type Psql struct {
 	DB *sql.DB
 }
+
+type ctxTxKey struct{}
 
 func NewPsql(DSN string) (*Psql, error) {
 	db, err := sql.Open("pgx", DSN)
@@ -26,15 +29,47 @@ func NewPsql(DSN string) (*Psql, error) {
 	return pgx, nil
 }
 
+func (p *Psql) WithTx(ctx context.Context, fn func(ctx context.Context) error) (err error) {
+	tx, alreadyHasTx := ctx.Value(ctxTxKey{}).(*sql.Tx)
+	if !alreadyHasTx {
+		tx, err = p.DB.Begin()
+		if err != nil {
+
+			return errors.WithStack(err)
+		}
+		ctx = context.WithValue(ctx, ctxTxKey{}, tx)
+	}
+
+	err = errors.WithStack(fn(ctx))
+
+	if alreadyHasTx {
+
+		return err
+	}
+	if err == nil {
+
+		return errors.WithStack(tx.Commit())
+	}
+
+	tx.Rollback()
+
+	return err
+}
+
+func (p *Psql) ExtractTx(ctx context.Context, fn func(context.Context, *sql.Tx) error) error {
+
+	return p.WithTx(ctx, func(ctx context.Context) error {
+		tx := ctx.Value(ctxTxKey{}).(*sql.Tx)
+
+		return errors.WithStack(fn(ctx, tx))
+	})
+}
+
 func (p *Psql) Ping() error {
 	if err := p.DB.Ping(); err != nil {
 		return err
 	}
 	return nil
-}
-
-func (p *Psql) BeginTx(ctx context.Context) (*sql.Tx, error) {
-	return p.DB.BeginTx(ctx, nil)
 }
 
 func (p *Psql) Init() error {
