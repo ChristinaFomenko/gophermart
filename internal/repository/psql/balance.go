@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"time"
 
@@ -14,6 +15,8 @@ type WithdrawOrderPostgres struct {
 	db  *sql.DB
 	log *zap.Logger
 }
+
+type ctxTxKey struct{}
 
 func NewWithdrawOrderPostgres(db *sql.DB, log *zap.Logger) *WithdrawOrderPostgres {
 	return &WithdrawOrderPostgres{
@@ -99,4 +102,40 @@ func (w *WithdrawOrderPostgres) GetWithdrawalOfPoints(ctx context.Context, userI
 	}
 
 	return orders, nil
+}
+
+func (w *WithdrawOrderPostgres) WithTx(ctx context.Context, fn func(ctx context.Context) error) (err error) {
+	tx, alreadyHasTx := ctx.Value(ctxTxKey{}).(*sql.Tx)
+	if !alreadyHasTx {
+		tx, err = w.db.Begin()
+		if err != nil {
+
+			return errors.WithStack(err)
+		}
+		ctx = context.WithValue(ctx, ctxTxKey{}, tx)
+	}
+
+	err = errors.WithStack(fn(ctx))
+
+	if alreadyHasTx {
+
+		return err
+	}
+	if err == nil {
+
+		return errors.WithStack(tx.Commit())
+	}
+
+	tx.Rollback()
+
+	return err
+}
+
+func (w *WithdrawOrderPostgres) ExtractTx(ctx context.Context, fn func(context.Context, *sql.Tx) error) error {
+
+	return w.WithTx(ctx, func(ctx context.Context) error {
+		tx := ctx.Value(ctxTxKey{}).(*sql.Tx)
+
+		return errors.WithStack(fn(ctx, tx))
+	})
 }

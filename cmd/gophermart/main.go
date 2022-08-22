@@ -43,7 +43,7 @@ func main() {
 	defer cansel()
 
 	repos := repository.NewRepository(db.DB, log)
-	services := service.NewService(repos, log)
+	services := service.NewService(nil, repos, log)
 	handlers := handler.NewHandler(services, log)
 
 	brokerRepos := repository.NewBrokerRepository(db.DB, log)
