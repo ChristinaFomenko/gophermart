@@ -16,7 +16,7 @@ import (
 //}
 
 type TxConnection interface {
-	WithTx(context.Context, func(w WithdrawOrderServiceContract) error) error
+	WithTransaction(context.Context, func(ctx context.Context) error) error
 }
 
 type AuthServiceContract interface {

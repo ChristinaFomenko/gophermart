@@ -33,10 +33,10 @@ type Repository struct {
 	Withdraw WithdrawOrderRepoContract
 }
 
-func NewRepository(db *sql.DB, log *zap.Logger) *Repository {
+func NewRepository(psql *postgres.Psql, db *sql.DB, log *zap.Logger) *Repository {
 	return &Repository{
 		Auth:     postgres.NewAuthPostgres(db, log),
 		Accrual:  postgres.NewAccrualOrderPostgres(db, log),
-		Withdraw: postgres.NewWithdrawOrderPostgres(db, log),
+		Withdraw: postgres.NewWithdrawOrderPostgres(psql, log),
 	}
 }

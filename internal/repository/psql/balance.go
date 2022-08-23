@@ -2,9 +2,6 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"time"
 
@@ -12,13 +9,13 @@ import (
 )
 
 type WithdrawOrderPostgres struct {
-	db  *sql.DB
+	db  *Psql
 	log *zap.Logger
 }
 
 type ctxTxKey struct{}
 
-func NewWithdrawOrderPostgres(db *sql.DB, log *zap.Logger) *WithdrawOrderPostgres {
+func NewWithdrawOrderPostgres(db *Psql, log *zap.Logger) *WithdrawOrderPostgres {
 	return &WithdrawOrderPostgres{
 		db:  db,
 		log: log,
@@ -26,7 +23,7 @@ func NewWithdrawOrderPostgres(db *sql.DB, log *zap.Logger) *WithdrawOrderPostgre
 }
 
 func (w *WithdrawOrderPostgres) GetAccruals(ctx context.Context, UserID int) float32 {
-	row := w.db.QueryRowContext(ctx, "SELECT SUM(amount) FROM public.accruals WHERE user_id=$1", UserID)
+	row := w.db.Conn(ctx).QueryRow(ctx, "SELECT SUM(amount) FROM public.accruals WHERE user_id=$1", UserID)
 	var accruals float32
 	_ = row.Scan(&accruals)
 
@@ -34,7 +31,7 @@ func (w *WithdrawOrderPostgres) GetAccruals(ctx context.Context, UserID int) flo
 }
 
 func (w *WithdrawOrderPostgres) GetWithdrawals(ctx context.Context, UserID int) float32 {
-	row := w.db.QueryRowContext(ctx, "SELECT SUM(amount) FROM public.withdrawals WHERE user_id=$1", UserID)
+	row := w.db.Conn(ctx).QueryRow(ctx, "SELECT SUM(amount) FROM public.withdrawals WHERE user_id=$1", UserID)
 	var withdrawals float32
 	_ = row.Scan(&withdrawals)
 
@@ -44,27 +41,13 @@ func (w *WithdrawOrderPostgres) GetWithdrawals(ctx context.Context, UserID int) 
 func (w *WithdrawOrderPostgres) DeductPoints(ctx context.Context, order *model.WithdrawOrder) (err error) {
 	order.ProcessedAt = time.Now()
 
-	tx, err := w.db.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err != nil {
-			txError := tx.Rollback()
-			if txError != nil {
-				err = fmt.Errorf("balance DeductPoints rollback error %s: %s", txError.Error(), err.Error())
-			}
-		}
-	}()
-
-	_, err = tx.ExecContext(ctx,
+	_, err = w.db.Conn(ctx).Exec(ctx,
 		"INSERT INTO public.orders(order_num, user_id) VALUES ($1,$2)", order.Order, order.UserID)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx,
+	_, err = w.db.Conn(ctx).Exec(ctx,
 		"INSERT INTO public.withdrawals(order_num, user_id, amount, processed_at) VALUES ($1,$2,$3,$4)",
 		order.Order, order.UserID, order.Sum, order.ProcessedAt)
 
@@ -72,16 +55,16 @@ func (w *WithdrawOrderPostgres) DeductPoints(ctx context.Context, order *model.W
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, "UPDATE users SET current = current - $1, withdrawal = withdrawal + $1 WHERE id = $2", order.Sum, order.UserID)
+	_, err = w.db.Conn(ctx).Exec(ctx, "UPDATE users SET current = current - $1, withdrawal = withdrawal + $1 WHERE id = $2", order.Sum, order.UserID)
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (w *WithdrawOrderPostgres) GetWithdrawalOfPoints(ctx context.Context, userID int) ([]model.WithdrawOrder, error) {
-	rows, err := w.db.QueryContext(ctx, "SELECT order_num, amount, processed_at FROM public.withdrawals WHERE user_id =$1 ORDER BY processed_at", userID)
+	rows, err := w.db.Conn(ctx).Query(ctx, "SELECT order_num, amount, processed_at FROM public.withdrawals WHERE user_id =$1 ORDER BY processed_at", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -102,40 +85,4 @@ func (w *WithdrawOrderPostgres) GetWithdrawalOfPoints(ctx context.Context, userI
 	}
 
 	return orders, nil
-}
-
-func (w *WithdrawOrderPostgres) WithTx(ctx context.Context, fn func(ctx context.Context) error) (err error) {
-	tx, alreadyHasTx := ctx.Value(ctxTxKey{}).(*sql.Tx)
-	if !alreadyHasTx {
-		tx, err = w.db.BeginTx(ctx, &sql.TxOptions{})
-		if err != nil {
-
-			return errors.WithStack(err)
-		}
-		ctx = context.WithValue(ctx, ctxTxKey{}, tx)
-	}
-
-	err = errors.WithStack(fn(ctx))
-
-	if alreadyHasTx {
-
-		return err
-	}
-	if err == nil {
-
-		return errors.WithStack(tx.Commit())
-	}
-
-	tx.Rollback()
-
-	return err
-}
-
-func (w *WithdrawOrderPostgres) ExtractTx(ctx context.Context, fn func(context.Context, *sql.Tx) error) error {
-
-	return w.WithTx(ctx, func(ctx context.Context) error {
-		tx := ctx.Value(ctxTxKey{}).(*sql.Tx)
-
-		return errors.WithStack(fn(ctx, tx))
-	})
 }
